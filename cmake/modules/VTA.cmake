@@ -116,6 +116,15 @@ elseif(PYTHON)
     elseif(${VTA_TARGET} STREQUAL "de10nano")  # DE10-Nano rules
       tvm_file_glob(GLOB DE10_FPGA_RUNTIME_SRCS ${VTA_HW_PATH}/src/de10nano/*.cc ${VTA_HW_PATH}/src/*.cc)
       list(APPEND FPGA_RUNTIME_SRCS ${DE10_FPGA_RUNTIME_SRCS})
+    elseif(${VTA_TARGET} STREQUAL "mpfs")  # Microchip PolarFire SoC rules
+      tvm_file_glob(GLOB MPFS_FPGA_RUNTIME_SRCS ${VTA_HW_PATH}/src/mpfs/*.cc ${VTA_HW_PATH}/src/*.cc)
+      list(APPEND FPGA_RUNTIME_SRCS ${MPFS_FPGA_RUNTIME_SRCS})
+      # The uop and insn queues each reserve VTA_MAX_XFER bytes up front. The stock
+      # 32 MB would consume the whole 64 MB non-cached DMA pool on its own, leaving
+      # nothing for tensors; 4 MB is far more than any single kernel needs (the
+      # on-chip uop buffer is 32 KB) and the runtime flushes the insn queue when full.
+      # (leading space: the loops below strip the first 3 characters, " -D")
+      list(APPEND VTA_DEFINITIONS " -DVTA_MAX_XFER=4194304")
     elseif(${VTA_TARGET} STREQUAL "intelfocl")  # Intel OpenCL for FPGA rules
       tvm_file_glob(GLOB FOCL_SRC ${VTA_HW_PATH}/src/oclfpga/*.cc)
       list(APPEND FPGA_RUNTIME_SRCS ${FOCL_SRC})

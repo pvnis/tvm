@@ -25,6 +25,14 @@ import tvm
 from tvm import te
 from . import intrin
 
+# LLVM target for the PolarFire SoC's U54 application cores. The ISA string and the
+# ABI must both be pinned: Ubuntu's riscv64 GCC defaults to RVA23, whose vector code
+# SIGILLs on this rv64gc part, and LLVM otherwise emits soft-float-ABI objects that
+# the (lp64d) cross linker refuses to merge with the rootfs libraries.
+MPFS_LLVM_TARGET = (
+    "llvm -mtriple=riscv64-unknown-linux-gnu -mattr=+m,+a,+f,+d,+c -mabi=lp64d"
+)
+
 
 def get_vta_hw_path():
     """Get the VTA HW path."""
@@ -234,12 +242,16 @@ class Environment(object):
             return "llvm -mtriple=armv7-none-linux-gnueabihf"
         if self.TARGET == "ultra96":
             return "llvm -mtriple=aarch64-linux-gnu"
+        if self.TARGET == "mpfs":
+            return MPFS_LLVM_TARGET
         if self.TARGET in ["sim", "tsim", "intelfocl"]:
             return "llvm"
         raise ValueError("Unknown target %s" % self.TARGET)
 
     @property
     def target_vta_cpu(self):
+        if self.TARGET == "mpfs":
+            return tvm.target.Target(MPFS_LLVM_TARGET)
         return tvm.target.arm_cpu(model=self.TARGET)
 
 
